@@ -1,0 +1,9 @@
+spring:
+  mongodb:
+    uri: mongodb://root:example@localhost:27017/production_calendar_db?authSource=admin
+mongock:
+  enabled: true
+  migration-scan-package: "ru.otus.vinakov.calendar.migration"
+grpc:
+  active: true
+  port: 8981
