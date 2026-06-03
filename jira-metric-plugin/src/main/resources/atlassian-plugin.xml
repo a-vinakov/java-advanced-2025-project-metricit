@@ -1,0 +1,40 @@
+<atlassian-plugin key="${atlassian.plugin.key}" name="${project.name}" plugins-version="2">
+    <plugin-info>
+        <description>${project.description}</description>
+        <version>${project.version}</version>
+        <vendor name="${project.organization.name}" url="${project.organization.url}" />
+        <param name="plugin-icon">images/pluginIcon.png</param>
+        <param name="plugin-logo">images/pluginLogo.png</param>
+    </plugin-info>
+
+    <!-- add our i18n resource -->
+    <resource type="i18n" name="i18n" location="jira-metric-plugin"/>
+    
+    <!-- add our web resources -->
+    <web-resource key="jira-metric-plugin-resources" name="jira-metric-plugin Web Resources">
+        <dependency>com.atlassian.auiplugin:ajs</dependency>
+        
+        <resource type="download" name="jira-metric-plugin.css" location="/css/jira-metric-plugin.css"/>
+        <resource type="download" name="jira-metric-plugin.js" location="/js/jira-metric-plugin.js"/>
+        <resource type="download" name="images/" location="/images"/>
+
+        <context>jira-metric-plugin</context>
+    </web-resource>
+
+    <web-panel key="time-metric-right-panel" location="atl.jira.view.issue.right.context">
+        <description>Кастомная панель временных счетчиков справа на странице задачи</description>
+        <label key="time.metric.right.panel.title"/>
+        <resource type="velocity" name="view" location="templates/time-metric-right-panel.vm"/>
+        <context-provider class="ru.otus.vinakov.jira.plugin.context.TimeMetricIssuePanelContextProvider"/>
+        <condition class="ru.otus.vinakov.jira.plugin.condition.TimeMetricIssuePanelCondition"/>
+    </web-panel>
+
+    <web-panel key="number-metric-right-panel" location="atl.jira.view.issue.right.context">
+        <description>Кастомная панель количественных счетчиков справа на странице задачи</description>
+        <label key="number.metric.right.panel.title"/>
+        <resource type="velocity" name="view" location="templates/number-metric-right-panel.vm"/>
+        <context-provider class="ru.otus.vinakov.jira.plugin.context.NumberMetricIssuePanelContextProvider"/>
+        <condition class="ru.otus.vinakov.jira.plugin.condition.NumberMetricIssuePanelCondition"/>
+    </web-panel>
+
+</atlassian-plugin>
