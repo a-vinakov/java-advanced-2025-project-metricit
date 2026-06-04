@@ -1,0 +1,18 @@
+# Исключаем системы контроля версий и IDE
+.git
+.gitignore
+.idea
+*.iml
+.vscode
+
+# Исключаем скомпилированные артефакты всех модулей
+**/target/
+
+# Исключаем файлы Docker и Compose, чтобы они не попали внутрь образа
+Dockerfile
+docker-compose.yml
+**/Dockerfile
+
+# Исключаем логи и временные файлы
+**/*.log
+*.tmp

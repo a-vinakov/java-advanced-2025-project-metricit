@@ -1,0 +1,176 @@
+version: '3.8'
+
+services:
+  # База данных для calendar-app
+  mongodb:
+    image: mongo:7.0
+    container_name: metricit-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - metricit-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # База данных для metric-app и analytic-app
+  postgres:
+    image: postgres:16-alpine
+    container_name: metricit-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: metric
+      POSTGRES_PASSWORD: metric
+      POSTGRES_DB: metricdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - metricit-network
+
+  metric-kafka:
+    image: apache/kafka:latest
+    container_name: metric-kafka
+    restart: always
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@metric-kafka:9093
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://metric-kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      KAFKA_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - metricit-network
+
+  # UI для удобного просмотра топиков и сообщений Kafka
+  metric-kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: metric-kafka-ui
+    restart: always
+    ports:
+      - "8099:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: metric-kafka:9092
+    depends_on:
+      - metric-kafka
+    networks:
+      - metricit-network
+
+  # 1. Calendar App
+  calendar-app:
+    build:
+      context: .
+      dockerfile: calendar-app/Dockerfile
+    container_name: metricit-calendar-app
+    restart: always
+    ports:
+      - "8082:8082"
+      - "8981:8981"
+    environment:
+      - SPRING_MONGODB_URI=mongodb://root:example@mongodb:27017/production_calendar_db?authSource=admin
+      - SERVER_PORT=8082
+      - GRPC_PORT=8981
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - metricit-network
+
+  # 2. Metric App
+  metric-app:
+    build:
+      context: .
+      dockerfile: metric-app/Dockerfile
+    container_name: metricit-metric-app
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/metricdb
+      - SPRING_DATASOURCE_USERNAME=metric
+      - SPRING_DATASOURCE_PASSWORD=metric
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=metric-kafka:9092
+      - GRPC_CALENDAR_HOST=calendar-app
+      - GRPC_CALENDAR_PORT=8981
+      - SERVER_PORT=8081
+      - SPRING_JPA_SHOW_SQL=false
+      - SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=false
+      - LOGGING_LEVEL_ORG_HIBERNATE_SQL=WARN
+      - LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL_BASICBINDER=WARN
+    depends_on:
+      - postgres
+      - metric-kafka
+      - calendar-app
+    networks:
+      - metricit-network
+
+  analytic-app:
+    build:
+      context: .
+      dockerfile: analytic-app/Dockerfile
+    container_name: metricit-analytic-app
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/metricdb
+      - SPRING_DATASOURCE_USERNAME=metric
+      - SPRING_DATASOURCE_PASSWORD=metric
+      - GATEWAY_HOST=http://gateway:8080
+      - SERVER_PORT=8083
+    depends_on:
+      - postgres
+    networks:
+      - metricit-network
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: metricit-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=metric-kafka:9092
+      - SERVICE_ANALYTIC_URL=http://analytic-app:8083
+      - SERVICE_METRIC_URL=http://metric-app:8081
+      - SERVER_PORT=8080
+    depends_on:
+      - metric-kafka
+      - metric-app
+      - analytic-app
+    networks:
+      - metricit-network
+
+volumes:
+  mongo_data:
+  postgres_data:
+  kafka-data:
+
+networks:
+  metricit-network:
+    driver: bridge

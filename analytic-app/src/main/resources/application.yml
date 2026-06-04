@@ -19,3 +19,20 @@ server:
   port: 8083
 gateway:
   host: http://localhost:8080
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      # Включает специальные эндпоинты /actuator/health/liveness и /actuator/health/readiness
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  server:
+    port: 8883

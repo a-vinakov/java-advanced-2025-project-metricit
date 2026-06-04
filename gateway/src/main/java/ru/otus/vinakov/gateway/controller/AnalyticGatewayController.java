@@ -1,5 +1,12 @@
 package ru.otus.vinakov.gateway.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -20,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @RestController
+@Tag(name = "Analytic operations")
 public class AnalyticGatewayController {
 
     public record JobEvent(String jobId, Job.Status status, Object result) {
@@ -42,8 +50,23 @@ public class AnalyticGatewayController {
     /**
      * 1. Принимает запрос → отправляет в analytic → получает jobId → открывает SSE с heartbeat
      */
+    @Operation(summary = "Receive metric analytic requests")
     @PostMapping(value = "rest/api/analytic", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<JobEvent>> analyze(@RequestBody AnalyticFunctionRequestDTO request) {
+    @ApiResponses({@ApiResponse(description = "Returns analytic data (number, entities or metrics), processed by analytic function", responseCode = "200")})
+    public Flux<ServerSentEvent<JobEvent>> analyze(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Analytic functions parameters",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = JobEvent.class),
+                            examples = @ExampleObject(
+                                    name = "Result of AVG decision time function",
+                                    value = "{\"jobId\":\"3af4a7fd-eafd-4c25-80be-71e9bccdbc9b\",\"status\":\"COMPLETED\",\"result\":10.0}"
+                            )
+                    )
+            )
+            @RequestBody AnalyticFunctionRequestDTO request) {
         return analyticClient.post()
                 .uri("/rest/analytic/job")
                 .bodyValue(new JobRequest(request.getFunctionKey(), request.getParams(), "/rest/api/analytic/callback"))

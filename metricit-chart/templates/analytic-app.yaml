@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-analytic-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytic-app
+  template:
+    metadata:
+      labels:
+        app: analytic-app
+    spec:
+      containers:
+        - name: analytic-app
+          image: {{ .Values.analyticApp.image }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.analyticApp.serverPort }}
+            - containerPort: {{ .Values.analyticApp.managementPort }}
+              name: management
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ .Release.Name }}-postgres:{{ .Values.postgres.port }}/{{ .Values.postgres.db }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.postgres.user | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{ .Values.postgres.password | quote }}
+            - name: GATEWAY_HOST
+              value: "http://{{ .Release.Name }}-gateway:{{ .Values.gateway.serverPort }}"
+            - name: SERVER_PORT
+              value: {{ .Values.analyticApp.serverPort | quote }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.analyticApp.managementPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.analyticApp.managementPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-analytic-app
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.analyticApp.serverPort }}
+      targetPort: {{ .Values.analyticApp.serverPort }}
+    - name: management
+      port: {{ .Values.analyticApp.managementPort }}
+      targetPort: {{ .Values.analyticApp.managementPort }}
+  selector:
+    app: analytic-app
