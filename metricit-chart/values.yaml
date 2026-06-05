@@ -1,0 +1,75 @@
+images:
+  pullPolicy: IfNotPresent
+
+mongodb:
+  image: mongo:7.0
+  rootUser: root
+  rootPassword: example
+  port: 27017
+
+postgres:
+  image: postgres:16-alpine
+  user: metric
+  password: metric
+  db: metricdb
+  port: 5432
+
+kafka:
+  image: apache/kafka:latest
+  port: 9092
+  controllerPort: 9093
+
+kafkaUi:
+  image: provectuslabs/kafka-ui:latest
+  port: 8089
+  service:
+    type: NodePort
+    port: 8099
+    targetPort: 8080
+    nodePort: 30099
+
+calendarApp:
+  image: metricit/calendar-app:1.0
+  serverPort: 8082
+  grpcPort: 8981
+  managementPort: 8882
+
+metricApp:
+  image: metricit/metric-app:1.0
+  serverPort: 8081
+  grpcCalendarPort: 8981
+  managementPort: 8881
+
+analyticApp:
+  image: metricit/analytic-app:1.0
+  serverPort: 8083
+  managementPort: 8883
+
+gateway:
+  image: metricit/gateway:1.0
+  serverPort: 8080
+  service:
+    type: LoadBalancer
+    port: 8080
+  managementPort: 8880
+#  ======================== MONITORING =========================
+prometheus:
+  image: prom/prometheus:latest
+  port: 9090
+  scrapeInterval: 15s
+  persistence:
+    size: 2Gi
+
+grafana:
+  image: grafana/grafana:latest
+  port: 3000
+  service:
+    type: LoadBalancer
+    port: 3000
+  adminUser: admin
+  adminPassword: admin
+  persistence:
+    size: 1Gi
+  datasources:
+    prometheus:
+      url: "http://metricit-prometheus:9090"

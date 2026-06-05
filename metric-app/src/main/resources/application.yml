@@ -1,0 +1,65 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/metricdb
+    username: metric
+    password: metric
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+    out-of-order: false
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: metric-app-consumer-group
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.otus.vinakov.metric.domain.event"
+        spring.json.value.default.type: "ru.otus.vinakov.metric.domain.event.KafkaEntityEvent"
+    listener:
+      concurrency: 1
+grpc:
+  calendar:
+    host: localhost
+    port: 8981
+kafka:
+  metric:
+    topic: metric-event-topic
+    partitions: 3
+#logging:
+#  level:
+#    org.flywaydb: DEBUG
+#    org.hibernate.SQL: DEBUG
+#    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+server:
+  port: 8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      # Включает специальные эндпоинты /actuator/health/liveness и /actuator/health/readiness
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  server:
+    port: 8881

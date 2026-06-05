@@ -1,0 +1,39 @@
+spring:
+  kafka:
+    bootstrap-servers: metric-kafka:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        spring.json.trusted.packages: "ru.otus.vinakov.metric.domain.event"
+    topic:
+      metric: "metric-event-topic"
+service:
+  analytic:
+    url: http://localhost:8083
+  metric:
+    url: http://localhost:8081
+server:
+  netty:
+    connection-timeout: 10m
+    idle-timeout: 10m
+  port: 8080
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      # Включает специальные эндпоинты /actuator/health/liveness и /actuator/health/readiness
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  server:
+    port: 8880

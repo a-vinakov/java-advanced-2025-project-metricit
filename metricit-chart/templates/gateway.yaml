@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: {{ .Values.gateway.image }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.gateway.serverPort }}
+            - containerPort: {{ .Values.gateway.managementPort }}
+              name: management
+          env:
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "{{ .Release.Name }}-kafka:{{ .Values.kafka.port }}"
+            - name: SERVICE_ANALYTIC_URL
+              value: "http://{{ .Release.Name }}-analytic-app:{{ .Values.analyticApp.serverPort }}"
+            - name: SERVICE_METRIC_URL
+              value: "http://{{ .Release.Name }}-metric-app:{{ .Values.metricApp.serverPort }}"
+            - name: SERVER_PORT
+              value: {{ .Values.gateway.serverPort | quote }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.gateway.managementPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.gateway.managementPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-gateway
+spec:
+  type: {{ .Values.gateway.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.gateway.serverPort }}
+      targetPort: {{ .Values.gateway.serverPort }}
+    - name: management
+      port: {{ .Values.gateway.managementPort }}
+      targetPort: {{ .Values.gateway.managementPort }}
+  selector:
+    app: gateway

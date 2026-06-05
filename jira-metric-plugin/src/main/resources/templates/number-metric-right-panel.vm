@@ -1,0 +1,17 @@
+<div class="custom-right-panel aui-page-panel-content">
+    #if(!$metrics.isEmpty())
+        <div style="display: flex; flex-direction: column">
+            #foreach($m in $metrics)
+                <div style="display: flex; flex-direction: column">
+                    <span>$m.metric.name</span>
+##                    <span>$m.type</span>
+                    <span #if($m.actualValue > $m.targetValue) style="color: red" #else style="color: green"  #end>
+                        $m.actualValue.intValue() / $m.targetValue.intValue()
+                    </span>
+                </div>
+            #end
+        </div>
+    #else
+        <h3>No metrics yet</h3>
+    #end
+</div>

@@ -1,0 +1,32 @@
+spring:
+  mongodb:
+    uri: mongodb://root:example@localhost:27017/production_calendar_db?authSource=admin
+mongock:
+  enabled: true
+  migration-scan-package: "ru.otus.vinakov.calendar.core.migration"
+grpc:
+  active: true
+  port: 8981
+server:
+  port: 8082
+calendar:
+  limits:
+    max-year-range: 5
+    max-duration-range: 157680000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+      # Включает специальные эндпоинты /actuator/health/liveness и /actuator/health/readiness
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  server:
+    port: 8882

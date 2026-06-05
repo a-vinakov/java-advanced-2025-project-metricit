@@ -1,0 +1,22 @@
+<div class="custom-right-panel aui-page-panel-content">
+    #if(!$metrics.isEmpty())
+        <div style="display: flex; flex-direction: column">
+            #foreach($m in $metrics)
+                <div style="display: flex; flex-direction: column">
+                    <span>$m.metric.name</span>
+##                    <span>$m.type</span>
+                    <div>
+                        <span style="font-size: medium">$durationUtils.getShortFormattedDuration($m.actualTime) / $durationUtils.getShortFormattedDuration($m.targetTime)</span>
+                        #if($m.status == 'START')
+                            <span style="color: green; font-size: large">▶︎</span>
+                        #else
+                            <span style="color: red; font-size: large">⏹</span>
+                        #end
+                    </div>
+                </div>
+            #end
+        </div>
+    #else
+        <h3>No metrics yet</h3>
+    #end
+</div>
